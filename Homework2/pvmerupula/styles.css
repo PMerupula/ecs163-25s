@@ -1,0 +1,92 @@
+/* GPT was used in aid for some of the styling, especially to figure out some of the div behaviors and ideal colors (like instead of FFFFFF for white, it suggested #f9f9f9*/
+
+    /* Base styles */
+
+    body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: sans-serif;
+    }
+
+    /* Header styling (for the filter/top bar) */
+    header {
+    background-color: #f9f9f9;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ccc;
+    }
+
+    /* Filter controls (for the filter bar) */
+    .filter-section {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    }
+    
+    /* Dashboard title text */
+    .title {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0 auto;
+    text-align: center;
+    }
+
+    /* Main styling layout for the dashboard content */
+    main {
+    height: calc(100vh - 70px); /* Accounts for the top navbar */
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    }
+
+    .dashboard-content {
+    display: flex;
+    height: 100%;
+    }
+
+    /* Left column for the sankey vis; Given more horizontal space since it's the advanced/main vis */
+    #sankey-column {
+    flex: 30;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    }
+
+    #sankeyChartSvg {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    }
+
+    /* Right column for the line and bar charts; Given less space horizontally */
+    #right-column {
+    flex: 18;
+    display: flex;
+    flex-direction: column;
+    }
+
+    #bar-chart-panel,
+    #line-chart-panel {
+    flex: 1;
+    padding: 5px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    }
+
+    #barChartSvg,
+    #lineChartSvg {
+    width: 100%;
+    height: 100%;
+    }
+
+    /* Dropdown contols for the line and bar charts */
+    .chart-controls {
+    margin-bottom: 5px;
+    padding: 0 5px;
+    font-size: 14px;
+    }

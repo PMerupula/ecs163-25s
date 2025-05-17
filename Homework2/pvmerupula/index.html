@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset = "UTF-8">
+        <meta name = "viewport" content = "width=device-width, initial-scale=1.0">
+        <title>Analyzing Terrorism Across the Globe</title>
+        <link rel = "stylesheet" href = "styles.css">
+    </head>
+    <body>
+        <header>
+            <div class="filter-section left">
+              <label for="locationPrimary">Region or Country:</label>
+              <select id="locationPrimary">
+                <!-- I read some HTML documentation, on implementing dropdowns with sections to do this, this is what it suggested -->
+                <option value="__ALL__">All Regions & Countries</option>
+                <optgroup label="Regions" id="regionOptionsPrimary"></optgroup>
+                <optgroup label="Countries" id="countryOptionsPrimary"></optgroup>
+              </select>
+          
+              <label for="locationCompare">Compare To (Optional):</label>
+              <select id="locationCompare">
+                <option value="">None</option>
+                <optgroup label="Regions" id="regionOptionsCompare"></optgroup>
+                <optgroup label="Countries" id="countryOptionsCompare"></optgroup>
+              </select>
+            </div>
+          
+            <div class="title">The Terrorism Dashboard</div>
+          
+            <div class="filter-section right">
+              <label for="startYear">From:</label>
+              <input type="number" id="startYear" min="1970" max="2017" value="2000" />
+          
+              <label for="endYear">To:</label>
+              <input type="number" id="endYear" min="1970" max="2017" value="2017" />
+          
+              <button id="applyFilters">Apply</button>
+            </div>
+          </header>
+          <main>
+            <div class="dashboard-content">
+              <!-- LEFT COLUMN (Sankey chart) -->
+              <div id="sankey-column">
+                <svg id="sankeyChartSvg"></svg>
+              </div>
+        
+              <!-- RIGHT COLUMN (Bar + Line chart stacked) -->
+              <div id="right-column">
+
+                      <!-- Bar Chart Controls -->
+      <div class="chart-controls">
+        <label for="barMetricSelect">Bar Chart Y-Axis:</label>
+        <select id="barMetricSelect">
+          <option value="count">Number of Attacks</option>
+          <option value="num_deaths">Number of Fatalities</option>
+          <option value="num_injuries">Number of Injuries</option>
+          <option value="property_damage">Property Damage (USD)</option>
+        </select>
+      </div>
+
+                
+                <div id="bar-chart-panel">
+                  <svg id="barChartSvg"></svg>
+                </div>
+
+                <!-- Line Chart Controls -->
+      <div class="chart-controls">
+        <label for="lineMetricSelect">Line Chart Y-Axis:</label>
+        <select id="lineMetricSelect">
+          <option value="count">Number of Attacks</option>
+          <option value="num_deaths">Number of Fatalities</option>
+          <option value="num_injuries">Number of Injuries</option>
+          <option value="property_damage">Property Damage (USD)</option>
+        </select>
+      </div>
+
+                <div id="line-chart-panel">
+                  <svg id="lineChartSvg"></svg>
+                </div>
+              </div>
+            </div>
+          </main>
+    
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <!-- Necessary import for sankey diagram below -->
+        <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+        <script src="main.js"></script>
+    </body>
+</html>
