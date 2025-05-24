@@ -8,3 +8,9 @@ I was considering using a geographical map, but chose to wait until homework 3 t
 Line charts are better at comparing the overall trends in a year range. This allows the user to observe the trajectory of a certain value. You can more easily see differences in trends (for example, if two countries are vastly different in population and/or terrorist attacks, the line chart can show you if their trends are the same despite the large difference).
 
 The Sankey Diagram was one of the two advanced visualization options that made perfect sense, with the other being the dendrogram. I chose to use the Sankey diagram for a few reasons. I've implemented a dendrogram in the past, and the way the sankey diagram works made it easier to have on a dashboard without needing to worry about scaling as much. Finally, the sankey diagram helps us see the progression. We followed the path of Attack Type -> Weapon Type -> Target Type -> Outcome. It lets users see what could contribute the most to a successful/unsuccessful terrorist attack. Every attack that was successful was colored green, and those that failed were colored green, and this held through all of the nodes. 
+
+For homework 3:
+
+There was already some selection implemented before, but I refined it. I added tooltips for the bar chart, where clicking on a bar shows the country/region name, year, and the value for that year. I also added brushing to the line chart, for the primary country/region selected. It shows the total value from the sum of the values in the specified year range. I also added 
+
+An animated transaction was also added for the bar chart, where it rises from the bottom/0 to its actual value.
