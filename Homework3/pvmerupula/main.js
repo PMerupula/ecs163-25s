@@ -1,23 +1,14 @@
-/* 
- * Global variables, names and functionalities defined below:
- * 
- * 
- */
+// GLOBAL VARIABLES
+
+const window_width = window.innerWidth;
+const window_height = window.innerHeight;
 
 let globalData = [];
-// let countryGeometries = [];
-// let selectedMetric = "count"; // Default metric sent to the number of terrorist attacks
-// let colorScale;
+let activeBrushLine = "primary"; // Tracks which line is currently active for brushing
 
-// const window_height = window.innerHeight;
-// const window_width = window.innerWidth;
-
-// let projection, path;
-
-function metricLabel(metric)
-{
-    switch(metric)
-    {
+// Function that handles the type of entries to be displayed
+function metricLabel(metric) {
+    switch (metric) {
         case "count":
             return "Number of Attacks";
         case "num_deaths":
@@ -31,10 +22,18 @@ function metricLabel(metric)
     }
 }
 
-function parseData(rawData) 
-{
+function formatLocationLabel(value) {
+    if (value === "__ALL__") {
+        return "All Locations";
+    }
+    return value.replace(/^region:|^country:/, ""); // Removes the prefix (simple regex)
+}
+
+// Function parses the input data and extracts the most important fields (not all will be used, but many extras are extracted for convenience)
+function parseData(rawData) {
     return rawData.map(d => {
         return {
+            // Time
             year: +d.iyear,
             month: +d.imonth || 0,
             day: +d.iday || 0,
@@ -81,414 +80,678 @@ function parseData(rawData)
             weapon_subtype: d.weapsubtype1_txt,
 
         };
-    }).filter(d => !isNaN(d.year));
+    })
+        .filter(d => !isNaN(d.year));
 }
 
-function aggregateByCountry(data, metricKey)
-{
-    const rolledUp = d3.rollup(
-        data, 
-        v => d3.sum(v, d => d[metricKey] || 0),
-        d => d.country
-    );
-    return new Map(rolledUp);
-}
+// SANKEY DIAGRAM STARTS -- Supports only the region/country selection (support for comparisons will likely be added in homework 3's submission)
 
-function aggregateByRegion(data, metricKey)
-{
-    const rolledUp = d3.rollup(
-        data, 
-        v => d3.sum(v, d => d[metricKey]), 
-        d => d.region
-    );
-    return new Map(rolledUp);
-}
+// Function prepares the data for the Sankey Diagram, turning them into nodes and links for a 4 stage diagram
+// Order of the stages: Attack Type -> Weapon Type -> Target Type -> Outcome
+function prepareSankeyData(data) {
+    const nodeMap = new Map(); // Maps the node's name to the index
+    const links = []; // Links between the diagram's stages
+    let nodeIndex = 0; // Tracks indices for the IDs for the nodes
 
-
-// /* Below are the functions and declarations for the choropleth map visualization.
-//  *
-//  *
-//  * 
-//  */
-
-// function setUpChoropleth()
-// {
-//     const svg = d3.select("svg"),
-//     width = +svg.attr("width"),
-//     height = +svg.attr("height");
-
-//     const path = d3.geoPath();
-//     const projection = d3.geoMercator()
-//         .scale(150)
-//         .translate([width / 2, height / 2]);
-
-//     const data = new Map();
-//     colorScale = d3.scaleThreshold()
-//     .domain([10000, 100000, 1000000, 1000000, 100000, 2000000])
-//     .range(d3.schemeBlues[7]);
-
-    
-// }
-
-// function drawChoropleth(svg, countries, path, colorScale, metricMap) {
-
-//     // Define mouse events
-//     function mouseOver(event, d) {
-//         d3.selectAll(".country")
-//             .transition()
-//             .duration(150)
-//             .style("opacity", 0.4);
-
-//         d3.select(this)
-//             .transition()
-//             .duration(150)
-//             .style("opacity", 1)
-//             .style("stroke", "#000");
-//     }
-
-//     function mouseLeave(event, d) {
-//         d3.selectAll(".country")
-//             .transition()
-//             .duration(150)
-//             .style("opacity", 0.85);
-
-//         d3.select(this)
-//             .transition()
-//             .duration(150)
-//             .style("stroke", "#333");
-//     }
-
-//     // Draw each country
-//     svg.append("g")
-//         .selectAll("path")
-//         .data(countries)
-//         .join("path")
-//         .attr("d", path)
-//         .attr("fill", d => {
-//             const val = metricMap.get(+d.id);
-//             return val != null ? colorScale(val) : "#ccc";
-//         })
-//         .attr("class", "country")
-//         .attr("stroke", "#333")
-//         .attr("stroke-width", 0.5)
-//         .style("opacity", 0.85)
-//         .on("mouseover", mouseOver)
-//         .on("mouseleave", mouseLeave);
-// }
-
-// Promise.all([
-//     d3.json("countries-110m.json"),
-//     d3.csv("globalterrorismdb_0718dist.csv").then(rawData => {
-//         globalData = parseData(rawData);
-//         console.log("Data successfully loaded");
-//         return globalData;
-//     })
-// ]).then(([world, terrorismData]) => {
-//     countryGeometries = topojson.feature(world, world.objects.countries).features;
-
-//     // Set up the SVG canvas
-//     const panel = document.getElementById("mapPanel");
-//     const width = panel.clientWidth || 960;
-//     const height = panel.clientHeight || 600;
-
-//     d3.select("#mapPanel").selectAll("svg").remove(); // Clear previous SVG
-
-//     const svg = d3.select("#mapPanel")
-//         .append("svg")
-//         .attr("width", width)
-//         .attr("height", height);
-
-//     projection = d3.geoMercator()
-//         .fitSize([width, height], { type: "FeatureCollection", features: countryGeometries });
-
-//     path = d3.geoPath().projection(projection);
-
-//     // Draw the choropleth map
-//     setUpChoropleth();
-// }).catch(err => {
-//     console.error("Error loading data:", err);
-// }
-//     );
-
-// Promise.all([
-//     d3.json("countries-110m.json"),
-//     d3.csv("globalterrorismdb_0718dist.csv")
-// ]).then(([worldData, rawData]) => {
-//     globalData = parseData(rawData); // assume this function exists and is correct
-
-//     const metricKey = "count"; // could be "count", "num_deaths", etc.
-//     const metricMap = d3.rollup(
-//         globalData,
-//         v => metricKey === "count" ? v.length : d3.sum(v, d => d[metricKey] || 0),
-//         d => +d.country_code
-//     );
-
-//     setupMapCanvas(worldData, metricMap, metricKey);
-// }).catch(error => {
-//     console.error("Error loading data:", error);
-// });
-
-
-// // Sets up the map canvas and rendering
-// function setupMapCanvas(worldData, metricMap, metricKey) {
-//     const container = document.getElementById("mapPanel");
-//     const width = container.clientWidth || 800;
-//     const height = container.clientHeight || 600;
-
-//     // Remove existing SVG if rerun
-//     d3.select(container).selectAll("svg").remove();
-
-//     const svg = d3.select(container)
-//         .append("svg")
-//         .attr("width", width)
-//         .attr("height", height);
-
-//     // ✅ Convert TopoJSON to GeoJSON
-//     const geo = topojson.feature(worldData, worldData.objects.countries);
-//     const countries = geo.features;
-
-//     if (!countries || countries.length === 0) {
-//         console.error("No countries found in TopoJSON.");
-//         return;
-//     }
-
-//     // ✅ Check geometry validity
-//     const hasInvalidCountry = countries.some(c => !c.geometry || !c.geometry.coordinates || c.geometry.coordinates.length === 0);
-//     if (hasInvalidCountry) {
-//         console.warn("Some countries have invalid geometry and may cause NaN paths.");
-//     }
-
-//     // ✅ Projection setup with error handling
-//     let projection;
-//     try {
-//         projection = d3.geoMercator().fitSize([width, height], geo);
-//     } catch (e) {
-//         console.error("Projection fitSize failed:", e);
-//         return;
-//     }
-
-//     const path = d3.geoPath().projection(projection);
-
-//     const maxValue = d3.max(Array.from(metricMap.values()));
-//     const colorScale = d3.scaleThreshold()
-//         .domain([10, 100, 1000, 5000, 20000, maxValue])
-//         .range(d3.schemeBlues[7]);
-
-//     drawChoropleth(svg, countries, path, colorScale, metricMap);
-//     createLegend(svg, colorScale);
-
-//     console.log("✅ Map drawn with", countries.length, "countries");
-// }
-
-// // Draws the choropleth map
-// function drawChoropleth(svg, countries, path, colorScale, metricMap) {
-//     function mouseOver(event, d) {
-//         d3.selectAll(".country")
-//             .transition()
-//             .duration(150)
-//             .style("opacity", 0.4);
-
-//         d3.select(this)
-//             .transition()
-//             .duration(150)
-//             .style("opacity", 1)
-//             .style("stroke", "black");
-//     }
-
-//     function mouseLeave(event, d) {
-//         d3.selectAll(".country")
-//             .transition()
-//             .duration(150)
-//             .style("opacity", 0.85);
-
-//         d3.select(this)
-//             .transition()
-//             .duration(150)
-//             .style("stroke", "#333");
-//     }
-
-//     svg.append("g")
-//         .selectAll("path")
-//         .data(countries)
-//         .join("path")
-//         .attr("d", path)
-//         .attr("fill", d => {
-//             const val = metricMap.get(+d.id);
-//             return val != null ? colorScale(val) : "#ccc";
-//         })
-//         .attr("class", "country")
-//         .attr("stroke", "#333")
-//         .attr("stroke-width", 0.5)
-//         .style("opacity", 0.85)
-//         .on("mouseover", mouseOver)
-//         .on("mouseleave", mouseLeave);
-// }
-
-// // Creates a basic legend for the color scale
-// function createLegend(svg, colorScale) {
-//     const legendWidth = 260;
-//     const legendHeight = 10;
-//     const spacing = 40;
-//     const legendData = colorScale.range().map((color, i) => {
-//         const domain = colorScale.domain();
-//         const lower = i === 0 ? 0 : domain[i - 1];
-//         const upper = domain[i] || "";
-//         return { color, label: `${lower} - ${upper}` };
-//     });
-
-//     const legend = svg.append("g")
-//         .attr("transform", `translate(30, 30)`);
-
-//     legend.selectAll("rect")
-//         .data(legendData)
-//         .join("rect")
-//         .attr("x", (d, i) => i * spacing)
-//         .attr("y", 0)
-//         .attr("width", spacing)
-//         .attr("height", legendHeight)
-//         .attr("fill", d => d.color);
-
-//     legend.selectAll("text")
-//         .data(legendData)
-//         .join("text")
-//         .attr("x", (d, i) => i * spacing)
-//         .attr("y", legendHeight + 12)
-//         .attr("font-size", "10px")
-//         .text(d => d.label);
-// }
-
-
-// Creates and draws the map, legend, and listeners
-function setupMapCanvas(worldData, metricMap, metricKey) {
-    const container = document.getElementById("mapPanel");
-
-    if (!container) {
-        console.error("Map container not found.");
-        return;
+    // Helper function that just takes the name of the node as the input and assigns a new id (and increments the index) if it doesn't exist in nodeMap or returns the ID if it does
+    function getNodeId(name) {
+        if (!nodeMap.has(name)) {
+            nodeMap.set(name, nodeIndex++);
+        }
+        return nodeMap.get(name);
     }
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    // Go through everything in the data to build the relationships
+    data.forEach(d => {
 
-    // Clear any existing SVG first
-    d3.select(container).selectAll("svg").remove();
+        // The longest name was "Vehicle ([etc])" so I shortened it to "Vehicle" to reduce clutter
+        let cleanedWeapon = d.weapon_type?.includes("Vehicle") ? "Vehicle" : d.weapon_type;
 
-    const svg = d3.select(container)
-        .append("svg")
-        .attr("width", width)
-        .attr("height", height);
+        // We defined the 4 stages as Attack -> Weapon -> Target -> Outcome
+        const stages = [
+            `Attack: ${d.attack_type}`,
+            `Weapon: ${cleanedWeapon}`,
+            `Target: ${d.target_type}`,
+            `Outcome: ${d.outcome}`
+        ];
 
+        const unique = new Set(stages);
+        if (unique.size < stages.length) {
+            return;
+        }// avoids circular links
 
-    const countries = topojson.feature(worldData, worldData.objects.countries).features;
-    const topoCountryIds = countries.map(d => d.properties.name);
-    console.log("Countries loaded:", topoCountryIds);
+        // Creates links between the stages
+        for (let i = 0; i < stages.length - 1; i += 1) 
+            {
+            const source = getNodeId(stages[i]);
+            const target = getNodeId(stages[i + 1]);
+            const key = `${source}->${target}`;
 
+            // Increments the values of links that already exists, if not, creates a new link
+            const existing = links.find(l => l.key === key && l.outcome === d.outcome);
+            if (existing) {
+                existing.value += 1;
+            }
+            else {
+                links.push({
+                    source,
+                    target,
+                    value: 1,
+                    key,
+                    outcome: d.outcome  // added to ALL links
+                });
+            }
+        }
+    });
 
-    const projection = d3.geoMercator()
-        .fitSize([width, height], { type: "FeatureCollection", features: countries });
-    const path = d3.geoPath().projection(projection);
+    // Converts the nodeMap into an array of nodes (sorted by index)
+    const nodes = Array.from(nodeMap.entries())
+        .sort((a, b) => a[1] - b[1])
+        .map(([name]) => ({ name }));
 
-    // Compute thresholds dynamically using quantiles
-    const values = Array.from(metricMap.values());
-    const colorScale = d3.scaleSequential()
-    .domain(values)  // or a clamped upper value like [0, 1000]
-    .interpolator(d3.interpolateReds);  // much better visibility
-
-    drawChoropleth(svg, countries, path, colorScale, metricMap);
-    drawLegend(svg, colorScale, width);
+    return { nodes, links };
 }
 
-// Draws the countries with color and interactivity
-function drawChoropleth(svg, countries, path, colorScale, metricMap) {
-    svg.append("g")
+// Draws the Sankey Diagram
+function drawSankeyDiagram(graph) {
+
+    // Selects the SVG container and clears it of previous contents
+    const svg = d3.select("#sankeyChartSvg");
+    svg.selectAll("*").remove();
+
+    const width = svg.node().clientWidth;
+    const height = svg.node().clientHeight;
+
+    // Holds the diagram and is centered in the SVG container
+    const g = svg.append("g")
+        .attr("transform", `translate(${(svg.node().clientWidth - width) / 2}, ${(svg.node().clientHeight - height) / 2})`); // Centers the chart
+
+    // Sets up the Sankey diagram generator with the specified node width and padding (exact values just randomly chosen and altered to fit the chart)
+    const sankey = d3.sankey()
+        .nodeWidth(15)
+        .nodePadding(15)
+        .extent([[0, 20], [width, height - 20]]);
+
+    // Generates the Sankey graph from the provided nodes and links
+    const sankeyGraph = sankey({
+        nodes: graph.nodes.map(d => Object.assign({}, d)),
+        links: graph.links.map(d => Object.assign({}, d))
+    });
+
+    // Links
+    g.append("g")
         .selectAll("path")
-        .data(countries)
+        .data(sankeyGraph.links)
         .join("path")
-        .attr("d", path)
+        .attr("d", d3.sankeyLinkHorizontal()) // Built in horizontal Sankey layout
+        .attr("fill", "none")
+        .attr("stroke", d => {
+            if (d.outcome === "Success") {
+                return "#27ae60"; // Green for success
+            }
+            if (d.outcome === "Failure") {
+                return "#c0392b"; // Red for failure 
+            }
+            // Debated switching the above since a successful attack is obviously bad, but green being successful is a pretty rigid association in most people's minds
+            return "#aaa";  // Default gray
+        })
+        .attr("stroke-width", d => Math.max(1, d.width)) //Line thickness based on value
+        .attr("stroke-opacity", 0.6)
+        .attr("opacity", 0.5);
+
+    // Nodes
+    const node = g.append("g")
+        .selectAll("g")
+        .data(sankeyGraph.nodes)
+        .join("g");
+
+    // Draws the rectangles for the nodes
+    node.append("rect")
+        .attr("x", d => d.x0)
+        .attr("y", d => d.y0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("width", d => d.x1 - d.x0)
+        // Colors assigned based on the node's depth (whether it's an attack, weapon, target, or outcome)
         .attr("fill", d => {
-            const val = metricMap.get(+d.id);
-            return val != null ? colorScale(val) : "#ccc";
+            switch (d.depth) {
+                case 0: return "#F6602D"; // ATTACK
+                case 1: return "#665544"; // WEAPON
+                case 2: return "#1A5BD3"; // TARGET
+                case 3: return "#000000"; // OUTCOME
+                default: return "#999"; //Default gray color (Won't end up being used)
+            }
         })
-        .attr("stroke", "#444")
-        .attr("stroke-width", 0.5)
-        .attr("class", "country")
-        .style("opacity", 1)
-        .on("mouseover", function (event, d) {
-            d3.selectAll(".country").style("opacity", 0.5);
-            d3.select(this).style("opacity", 1).attr("stroke", "black");
+        .attr("stroke", "#000");
+
+    // Node labels (with Target stage labels always on the right side)
+    node.append("text")
+        .attr("x", d => {
+            // Outcome nodes gets labels on the left
+            if (d.depth === 3) {
+                return d.x0 - 6;
+            }
+            // All other nodes get labels on the right
+            return d.x1 + 6;
         })
-        .on("mouseleave", function () {
-            d3.selectAll(".country")
-                .style("opacity", 0.9)
-                .attr("stroke", "#444");
+        .attr("y", d => (d.y0 + d.y1) / 2) // Label is centered vertically
+        .attr("dy", "0.35em")
+        .attr("text-anchor", d => d.depth === 3 ? "end" : "start")
+        .text(d => {
+            const name = d.name.split(": ")[1] || d.name; // Removes the prefix 
+            return name.length > 42 ? name.slice(0, 39) + "..." : name; // Truncates long labels (above 42 characters)
         });
+
+    // Chart title
+    g.append("text")
+        .attr("x", width / 2)
+        .attr("y", -20)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "18px")
+        .attr("font-weight", "bold")
+        .text("Flow of Terrorist Methods → Weapons → Targets → Outcomes");
+
+    // Stage Labels for each column
+    const stageLabels = ["ATTACK", "WEAPON", "TARGET", "OUTCOME"];
+    const columnWidth = width / stageLabels.length;
+
+    // 
+    g.selectAll(".stage-label")
+        .data(stageLabels)
+        .enter()
+        .append("text")
+        .attr("x", (d, i) => columnWidth * i + columnWidth / 2)
+        .attr("y", 20)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .attr("font-weight", "bold")
+        .text(d => d);
 }
 
-// Creates and appends a horizontal color legend
-function drawLegend(svg, colorScale, svgWidth) {
-    const legend = svg.append("g").attr("transform", `translate(${svgWidth - 300}, 40)`);
-    const legendData = colorScale.quantiles();
+// SANKEY DIAGRAM ENDS
 
-    legend.selectAll("rect")
-        .data(colorScale.range())
-        .join("rect")
-        .attr("x", (d, i) => i * 40)
-        .attr("y", 0)
-        .attr("width", 40)
-        .attr("height", 10)
-        .attr("fill", d => d);
+// BAR CHART BEGINS
 
-    legend.selectAll("text")
-        .data(legendData)
-        .join("text")
-        .attr("x", (d, i) => i * 40)
-        .attr("y", 22)
-        .attr("font-size", "10px")
-        .text((d, i) => {
-            const start = i === 0 ? 0 : Math.round(legendData[i - 1]);
-            return `${start} - ${Math.round(d)}`;
-        });
-}
-
-// Load data and build map
-// Promise.all([
-//     d3.json("countries-110m.json"),
-//     d3.csv("globalterrorismdb_0718dist.csv")
-// ]).then(([worldData, rawData]) => {
-//     globalData = parseData(rawData);
-//     const metricKey = "count";
-//     const metricMap = aggregateByCountry(globalData, metricKey);
-//     setupMapCanvas(worldData, metricMap, metricKey);
-
-//     // Redraw map on window resize
-//     window.addEventListener("resize", () => {
-//         setupMapCanvas(worldData, metricMap, metricKey);
-//     });
-// }).catch(error => {
-//     console.error("Error loading data:", error);
-// });
-
-
-Promise.all([
-    d3.json("countries-110m.json"),
-    d3.csv("globalterrorismdb_0718dist.csv")
-]).then(([worldData, rawData]) => {
-    globalData = parseData(rawData);
-    const gtdCountryNames = Array.from(new Set(globalData.map(d => d.country_text))).sort();
-
-console.log("✅ Unique Country Names in GTD:");
-gtdCountryNames.forEach((name, i) => {
-    console.log(`${i + 1}. ${name}`);
-});
-
-    const metricKey = "count"; // You can change this later
-    const metricMap = d3.rollup(
-        globalData,
-        v => metricKey === "count" ? v.length : d3.sum(v, d => d[metricKey] || 0),
-        d => +d.country_code // convert to Number to match topojson country `id`s
+// Prepares bar chart data by aggregating selected metric per year
+function prepareBarData(data, metric) {
+    const grouped = d3.rollup(
+        data,
+        v => metric === "count" ? v.length : d3.sum(v, d => d[metric] || 0), // Count the entries or get the sum of the values given the metric
+        d => d.year // Grouped by year
     );
 
-    setupMapCanvas(worldData, metricMap, metricKey);
-}).catch(error => {
-    console.error("Error loading data:", error);
+    // Converts the grouped data into an array of objects with year and value
+    return Array.from(grouped, ([year, value]) => ({
+        year,
+        value: value || 0
+    })).sort((a, b) => a.year - b.year);
+}
+
+// Draws the bar chart with the provided primary and comparison data
+function drawBarChart(primaryData, compareData, metric, primaryLabel, compareLabel) {
+    // Clears the SVG container
+    const svg = d3.select("#barChartSvg");
+    svg.selectAll("*").remove();
+
+    // Sets up the dimensions and margins for the chart
+    const margin = { top: 50, right: 30, bottom: 80, left: 80 };
+    const width = svg.node().clientWidth - margin.left - margin.right;
+    const height = svg.node().clientHeight - margin.top - margin.bottom;
+
+    // Creates a group element to hold the chart elements, positioned according to the margins
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    // Tooltip for displaying values on hover
+    const tooltip = d3.select("#tooltip");
+
+    // Gets the list of years and merges the primary and comparison data if applicable
+    const years = primaryData.map(d => d.year);
+    const allData = compareData ? [...primaryData, ...compareData] : primaryData;
+
+    // Scales for the x and y axes (x0 for years, x1 for comparison if applicable, and y for values)
+    const x0 = d3.scaleBand().domain(years).range([0, width]).padding(compareData ? 0.2 : 0.1);
+    const x1 = compareData ? d3.scaleBand().domain(["primary", "compare"]).range([0, x0.bandwidth()]).padding(0.05) : null;
+    const y = d3.scaleLinear().domain([0, d3.max(allData, d => d.value)]).nice().range([height, 0]);
+
+    // Axes (X-axis specifically)
+    g.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x0).tickFormat(d3.format("d")))
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+    // Y-axis
+    g.append("g")
+        .call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
+    // Primary set of bars
+    const primaryBars = g.selectAll(".bar-primary")
+        .data(primaryData)
+        .enter()
+        .append("rect")
+        .attr("class", "bar-primary")
+        .attr("x", d => x0(d.year) + (compareData ? x1("primary") : 0))
+        .attr("width", compareData ? x1.bandwidth() : x0.bandwidth())
+        .attr("y", height)
+        .attr("height", 0)
+        .attr("fill", "#1f77b4");
+
+    // Animates the rise of the bars--starts from 0 and goes till the value. 
+    primaryBars.transition()
+        .duration(800)
+        .attr("y", d => y(d.value))
+        .attr("height", d => height - y(d.value));
+
+    // Logic below adds the interactivity to the bars, showing a tooltip that displays the country/region, year, and the value of the metric
+    primaryBars
+        .on("mouseover", function (event, d) {
+            tooltip.style("display", "block")
+                .style("opacity", 1)
+                .html(`${primaryLabel}<br>${d.year}<br><strong>${metricLabel(metric)}:</strong> ${metric === "property_damage" ? "$" : ""}${d.value.toLocaleString()}`);
+            d3.select(this).attr("fill", "#105a93");
+        })
+        .on("mousemove", function (event) {
+            tooltip.style("left", (event.pageX + 12) + "px")
+                .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseleave", function () {
+            tooltip.style("opacity", 0).style("display", "none");
+            d3.select(this).attr("fill", "#1f77b4");
+        });
+
+    // Bars for comparison dataset, only if applicable
+    if (compareData && compareLabel !== "None") {
+        const compareBars = g.selectAll(".bar-compare")
+            .data(compareData)
+            .enter()
+            .append("rect")
+            .attr("class", "bar-compare")
+            .attr("x", d => x0(d.year) + x1("compare"))
+            .attr("width", x1.bandwidth())
+            .attr("y", height)
+            .attr("height", 0)
+            .attr("fill", "#d62728");
+
+        // Animates the rise of the comparison bars (same logic at core as the primary sets of bars)
+        compareBars.transition()
+            .duration(800)
+            .attr("y", d => y(d.value))
+            .attr("height", d => height - y(d.value));
+
+        // Same tooltip logic as the primary bars, but with the comparison data instead
+        compareBars
+            .on("mouseover", function (event, d) {
+                tooltip.style("display", "block")
+                    .style("opacity", 1)
+                    .html(`${compareLabel}<br>${d.year}<br><strong>${metricLabel(metric)}:</strong> ${metric === "property_damage" ? "$" : ""}${d.value.toLocaleString()}`);
+                d3.select(this).attr("fill", "#921616");
+            })
+            .on("mousemove", function (event) {
+                tooltip.style("left", (event.pageX + 12) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseleave", function () {
+                tooltip.style("opacity", 0).style("display", "none");
+                d3.select(this).attr("fill", "#d62728");
+            });
+    }
+
+    // Chart titles
+    g.append("text")
+        .attr("x", width / 2)
+        .attr("y", -20)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "18px")
+        .attr("font-weight", "bold")
+        .text(`${metricLabel(metric)} Per Year`);
+
+    // Y-Axis
+    g.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -60)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .text(metricLabel(metric));
+
+    // X-Axis
+    g.append("text")
+        .attr("x", width / 2)
+        .attr("y", height + 45)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .text("Year");
+
+    // Legend box is defined
+    const legend = svg.append("g").attr("transform", `translate(${width / 2}, ${height + margin.top + 50})`);
+
+    // Legened additions for the primary data
+    legend.append("rect").attr("x", -120).attr("width", 20).attr("height", 10).attr("fill", "#1f77b4");
+    legend.append("text").attr("x", -90).attr("y", 10).attr("font-size", "12px").text(primaryLabel);
+
+
+    // Legend additions for the comparison data, only if applicable
+    if (compareData && compareData.length > 0 && compareLabel !== "None") {
+        legend.append("rect").attr("x", 135).attr("y", 0).attr("width", 20).attr("height", 10).attr("fill", "#d62728");
+        legend.append("text").attr("x", 165).attr("y", 10).attr("font-size", "12px").text(compareLabel);
+    }
+}
+
+
+// BAR CHART ENDS
+
+// LINE CHART BEGINS
+
+// Prepares the data for the line chart by aggregating the selected metric per year (called on the initial data and comparison, if applicable)
+// Similar logic as the previous functions, but this one is for the line chart
+// Some code from when I tried to implement a brush feature that would work alongside selecting a line, but had a hard time, so it's just the brush
+function prepareLineData(data) {
+    // Groups the data by year and aggregates the values for each metric (variable names are self-explanatory)
+    const grouped = d3.rollup(
+        data,
+        v => ({
+            count: v.length, // Counts the number of incidents for the year
+            num_deaths: d3.sum(v, d => d.num_deaths || 0),
+            num_injuries: d3.sum(v, d => d.num_injuries || 0),
+            property_damage: d3.sum(v, d => d.property_damage || 0)
+        }),
+        d => d.year
+    );
+
+    // Converts the grouped data into an array of objects with year and aggregated values
+    return Array.from(grouped, ([year, values]) => ({
+        year,
+        count: values.count || 0,
+        num_deaths: values.num_deaths || 0,
+        num_injuries: values.num_injuries || 0,
+        property_damage: values.property_damage || 0
+    })).sort((a, b) => a.year - b.year); // Sorts by ascending year
+}
+
+// Draws the line chart with the provided primary and comparison data
+function drawLineChart(dataPrimary, dataCompare, metric, primaryLabel, compareLabel) {
+    // Clears the SVG container for the line chart
+    const svg = d3.select("#lineChartSvg");
+    // Clears all previous contents
+    svg.selectAll("*").remove();
+
+    // Sets up the container, dimensions, and margins for the chart
+    const container = svg.node().getBoundingClientRect();
+    const margin = { top: 50, right: 30, bottom: 60, left: 80 };
+    const width = container.width - margin.left - margin.right;
+    const height = container.height - margin.top - margin.bottom;
+
+    // Creates a group element to hold the chart elements, positioned according to the margins
+    const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Sets up the x and y scales for the chart
+    const x = d3.scaleLinear().domain(d3.extent(dataPrimary, d => d.year)).range([0, width]);
+    const maxY = d3.max([
+        d3.max(dataPrimary, d => d[metric] || 0),
+        dataCompare ? d3.max(dataCompare, d => d[metric] || 0) : 0
+    ]);
+    const y = d3.scaleLinear().domain([0, maxY]).range([height, 0]).nice();
+
+    // Adds the x axis to the chart with rotated labels
+    g.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+    // Y-axis with formatted numbers
+    g.append("g").call(d3.axisLeft(y).tickFormat(d3.format(".2s")));
+
+    // Line generator function for the primary and comparison data
+    const line = d3.line().x(d => x(d.year)).y(d => y(d[metric] || 0));
+
+    // Below variable not actually effectively used (selection before brushing was abandonded due to implementation issues)
+    let selected = null;
+
+    // Draw primary line
+    const primaryPath = g.append("path")
+        .datum(dataPrimary)
+        .attr("fill", "none")
+        .attr("stroke", "#1f77b4")
+        .attr("stroke-width", 2.5)
+        .attr("d", line)
+        .style("cursor", "pointer")
+        .on("click", () => {
+            selected = "primary";
+            updateLegendHighlight();
+        });
+
+    // Draw comparison line if available 
+    let comparePath = null;
+    if (dataCompare && dataCompare.length > 0) {
+        comparePath = g.append("path")
+            .datum(dataCompare)
+            .attr("fill", "none")
+            .attr("stroke", "#d62728")
+            .attr("stroke-width", 2.5)
+            .attr("d", line)
+            .style("cursor", "pointer")
+            .on("click", () => {
+                selected = "compare";
+                updateLegendHighlight();
+            });
+    }
+
+    // Adds a brushing overlay to select a region in the x-axis
+    const brushOverlay = g.append("g").attr("class", "brush");
+    const brush = d3.brushX()
+        .extent([[0, 0], [width, height]])
+        .on("end", (event) => {
+            const extent = event.selection;
+            if (!extent) {
+                // Resets the selected window if brush is cleared 
+                g.select(".summary-text").remove();
+                return;
+            }
+            
+            // Converts the brush coords to the year values
+            const [x0, x1] = extent.map(x.invert);
+            const data = selected === "compare" ? dataCompare : dataPrimary;
+            if (!data)
+            {
+                return;
+            }
+
+            // Sums the metric within the brush year range
+            const total = d3.sum(data.filter(d => d.year >= x0 && d.year <= x1), d => d[metric] || 0);
+
+            // Displays the total value below the chart, and also modifies the the summary text to contain the total for the metric
+            g.select(".summary-text").remove();
+            g.append("text")
+                .attr("class", "summary-text")
+                .attr("x", width / 2)
+                .attr("y", height + 30)
+                .attr("text-anchor", "middle")
+                .attr("font-size", "14px")
+                .attr("font-weight", "bold")
+                .text(`${selected === "compare" ? compareLabel : primaryLabel}: ${metricLabel(metric)} Total: ${metric === "property_damage" ? "$" : ""}${total.toLocaleString()}`);
+        });
+
+    // Actually calls the brush overlay to the chart
+    brushOverlay.call(brush);
+
+    // Adds the title and axis labels to the chart
+    g.append("text")
+        .attr("x", width / 2)
+        .attr("y", -20)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "18px")
+        .attr("font-weight", "bold")
+        .text(`${metricLabel(metric)} Over Time`);
+
+    // X axis
+    g.append("text")
+        .attr("x", width / 2)
+        .attr("y", height + 50)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .text("Year");
+
+    // Y axis
+    g.append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("x", -height / 2)
+        .attr("y", -60)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "14px")
+        .text(metricLabel(metric));
+
+    // Legend
+    const legend = svg.append("g")
+        .attr("transform", `translate(${width / 2}, ${height + margin.top + 50})`);
+
+    // Adds the name of the primary data
+    const primaryText = legend.append("text")
+        .attr("x", -90)
+        .attr("y", 15)
+        .attr("font-size", "12px")
+        .text(primaryLabel);
+
+    // Adds the legend for the primary data
+    legend.append("rect")
+        .attr("x", -120)
+        .attr("y", 5)
+        .attr("width", 20)
+        .attr("height", 10)
+        .attr("fill", "#1f77b4");
+
+    // Adds the legend for the comparison data, if applicable
+    let compareText = null;
+    // Same logic as with the primary data
+    if (dataCompare && dataCompare.length > 0) {
+        legend.append("rect")
+            .attr("x", 135)
+            .attr("y", 5)
+            .attr("width", 20)
+            .attr("height", 10)
+            .attr("fill", "#d62728");
+
+        compareText = legend.append("text")
+            .attr("x", 165)
+            .attr("y", 15)
+            .attr("font-size", "12px")
+            .text(compareLabel);
+    }
+
+    // Updates the legend highlight based on the selected line (primary or compare)
+    function updateLegendHighlight() {
+        primaryText.style("font-weight", selected === "primary" ? "bold" : "normal");
+        if (compareText) {
+            compareText.style("font-weight", selected === "compare" ? "bold" : "normal");
+        }
+    }
+
+    // Set default selected line to primary
+    selected = "primary";
+    updateLegendHighlight();
+}
+
+// LINE CHART ENDS
+
+// Applies all of the selected filters, and draws the charts wih the filtered data as the input
+function applyAllFiltersAndGo() {
+    // Gets the starting and ending years 
+    const startYear = +document.getElementById("startYear").value || 1970;
+    const endYear = +document.getElementById("endYear").value || 2017;
+
+    // Gets the selected locations from the dropdowns in the top bar
+    const primaryLocation = document.getElementById("locationPrimary").value;
+    const compareLocation = document.getElementById("locationCompare").value;
+
+    // Gets the selected metrics the user wants to see from the drop downs in the charts
+    const barMetric = document.getElementById("barMetricSelect").value;
+    const lineMetric = document.getElementById("lineMetricSelect").value;
+
+    // Both functions below are the same, just with different locations
+    // Takes the whole processed dataset, filters it by year and then by location (getting rid of the region: and country: )
+    let filteredPrimary = globalData.filter(d =>
+        d.year >= startYear && d.year <= endYear &&
+        (primaryLocation === "__ALL__" ||
+            (primaryLocation.startsWith("region:") && d.region_text === primaryLocation.replace("region:", "")) ||
+            (primaryLocation.startsWith("country:") && d.country_text === primaryLocation.replace("country:", "")))
+    );
+
+    let filteredCompare = compareLocation && compareLocation !== "None" ? globalData.filter(d =>
+        d.year >= startYear && d.year <= endYear &&
+        (compareLocation.startsWith("region:") && d.region_text === compareLocation.replace("region:", "")) ||
+        (compareLocation.startsWith("country:") && d.country_text === compareLocation.replace("country:", ""))
+    ) : [];
+
+    // If the primary location is "None", we just set it to the global data
+    const primaryLabel = formatLocationLabel(primaryLocation);
+    // If the compare location is "None", we just set it to "None" (no comparison)
+    const compareLabel = formatLocationLabel(compareLocation);
+
+    // Sankey diagram is prepared and drawn
+    const sankeyData = prepareSankeyData(filteredPrimary);
+    drawSankeyDiagram(sankeyData);
+
+    // Bar chart is prepared and drawn
+    const barDataPrimary = prepareBarData(filteredPrimary, barMetric);
+    const barDataCompare = compareLocation !== "None" ? prepareBarData(filteredCompare, barMetric) : null;
+
+    drawBarChart(
+        barDataPrimary,
+        barDataCompare,
+        barMetric,
+        formatLocationLabel(primaryLocation),
+        formatLocationLabel(compareLocation)
+    );
+
+    // Line chart is prepared and drawn
+    const lineDataPrimary = prepareLineData(filteredPrimary);
+    const lineDataCompare = compareLocation !== "None" ? prepareLineData(filteredCompare) : null;
+    drawLineChart(lineDataPrimary, lineDataCompare, lineMetric, primaryLabel, compareLabel);
+}
+
+// Listeners for the dropdowns and filter apply buttons (not needed for the year ranges since they're inputs)
+window.onload = function () {
+    document.getElementById("applyFilters").addEventListener("click", applyAllFiltersAndGo);
+    document.getElementById("barMetricSelect").addEventListener("change", applyAllFiltersAndGo);
+    document.getElementById("lineMetricSelect").addEventListener("change", applyAllFiltersAndGo);
+};
+
+d3.csv("globalterrorismdb_0718dist.csv").then(rawData => {
+    globalData = parseData(rawData);
+    const regions = Array.from(new Set(globalData.map(d => d.region_text))).sort();
+    const countries = Array.from(new Set(globalData.map(d => d.country_text))).sort();
+
+    // Populate dropdowns
+    // Populate unified dropdowns
+    const regionGroupPrimary = d3.select("#regionOptionsPrimary");
+    const regionGroupCompare = d3.select("#regionOptionsCompare");
+    const countryGroupPrimary = d3.select("#countryOptionsPrimary");
+    const countryGroupCompare = d3.select("#countryOptionsCompare");
+
+    regions.forEach(region => {
+        regionGroupPrimary.append("option")
+            .attr("value", `region:${region}`)
+            .text(region);
+        regionGroupCompare.append("option")
+            .attr("value", `region:${region}`)
+            .text(region);
+    });
+
+    countries.forEach(country => {
+        countryGroupPrimary.append("option")
+            .attr("value", `country:${country}`)
+            .text(country);
+        countryGroupCompare.append("option")
+            .attr("value", `country:${country}`)
+            .text(country);
+    });
+
+
+
+    applyAllFiltersAndGo(); // Initial draw with all data
+
+    d3.select("#applyFilters").on("click", applyAllFiltersAndGo);
+
+}).catch(function (error) {
+    console.log("Error loading or parsing data:", error);
 });
