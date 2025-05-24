@@ -90,3 +90,32 @@
     padding: 0 5px;
     font-size: 14px;
     }
+
+    /* Tooltip styling for D3 tooltips */
+/* .tooltip {
+  position: absolute;
+  display: none;
+  padding: 6px 12px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 4px;
+  pointer-events: none;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 999;
+}*/
+
+
+#tooltip {
+  position: absolute;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 4px;
+  pointer-events: none;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+}
