@@ -91,21 +91,6 @@
     font-size: 14px;
     }
 
-    /* Tooltip styling for D3 tooltips */
-/* .tooltip {
-  position: absolute;
-  display: none;
-  padding: 6px 12px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  border-radius: 4px;
-  pointer-events: none;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 999;
-}*/
-
-
 #tooltip {
   position: absolute;
   background-color: #f9f9f9;
